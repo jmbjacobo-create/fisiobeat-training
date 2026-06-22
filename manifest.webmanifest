@@ -1,7 +1,7 @@
 {
-  "name": "FisioBeat Training",
-  "short_name": "FisioBeat",
-  "description": "Planificaciones diarias privadas para clientes FisioBeat.",
+  "name": "FisioBeat Training Admin",
+  "short_name": "FisioBeat Admin",
+  "description": "Panel administrador para crear planificaciones FisioBeat.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#05060d",

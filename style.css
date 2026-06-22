@@ -391,3 +391,28 @@ button { cursor: pointer; }
   .segmented { grid-template-columns: repeat(2, 1fr); }
   .client-shell { padding: 12px; }
 }
+
+.language-switch {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+  padding: 5px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  background: rgba(255,255,255,.04);
+}
+.language-switch button {
+  min-width: 58px;
+  min-height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+.language-switch button.active {
+  background: var(--orange);
+  color: #080a12;
+}

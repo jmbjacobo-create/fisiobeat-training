@@ -1,12 +1,181 @@
-const APP_VERSION = '2026.06.22.4';
+const APP_VERSION = '2026.06.22.6';
 const DB_KEY = 'fisiobeat_training_admin_v1';
 const CLIENT_CACHE_KEY = 'fisiobeat_training_client_cache_v1';
+const CLIENT_LANG_KEY = 'fisiobeat_training_client_lang_v1';
 const BLOCKS = [
   { key: 'warmup', label: 'Calentamiento' },
   { key: 'strength', label: 'Fuerza' },
   { key: 'wod', label: 'WOD / Funcional' }
 ];
 const CATEGORIES = ['Calentamiento', 'Fuerza', 'WOD', 'Movilidad', 'Halterofilia', 'Core', 'Cardio', 'Rehabilitación'];
+
+const I18N = {
+  es: {
+    language: 'Idioma',
+    spanish: 'Español',
+    english: 'English',
+    gateTitle: 'FisioBeat',
+    gateText: 'Introduce tu PIN para ver tu entrenamiento.',
+    pinLabel: 'PIN de acceso',
+    pinPlaceholder: '1234',
+    enter: 'Entrar',
+    visibleInfo: 'Solo se mostrará el entrenamiento de hoy y el de ayer.',
+    trainingPlan: 'Plan de entrenamiento',
+    noVisibleWorkout: 'No hay entrenamiento visible para hoy ni ayer.',
+    today: 'HOY',
+    yesterday: 'AYER',
+    completed: 'Completado',
+    pending: 'Pendiente',
+    noContent: 'Sin contenido.',
+    perceivedEffort: 'Esfuerzo percibido',
+    pain: 'Molestias',
+    noteForJacobo: 'Nota para Jacobo',
+    notePlaceholder: 'Ej. Me molestó la rodilla / usé 60 kg / no pude acabar...',
+    markCompleted: 'Marcar completado',
+    copyFeedback: 'Copiar feedback',
+    copiedFeedback: 'Feedback copiado',
+    wrongPin: 'PIN incorrecto o enlace no válido',
+    enterPin: 'Introduce el PIN',
+    completedToast: 'Entrenamiento marcado como completado',
+    missingPlanTitle: 'FisioBeat',
+    missingPlanText: 'No hay una planificación cargada en este enlace.',
+    missingPlanHelp: 'Abre el enlace privado que te ha enviado Jacobo. Si acabas de actualizar la app, vuelve a abrir el enlace del cliente y añade de nuevo a pantalla de inicio.',
+    trainerAccess: 'Acceso entrenador',
+    openYoutube: 'Abrir vídeo en YouTube',
+    watchVideo: 'Ver vídeo',
+    feedbackTitle: 'FisioBeat - Feedback de',
+    date: 'Fecha',
+    yes: 'Sí',
+    no: 'No',
+    effort: 'Esfuerzo',
+    discomfort: 'Molestias',
+    note: 'Nota',
+    blockWarmup: 'Calentamiento',
+    blockStrength: 'Fuerza',
+    blockWod: 'WOD / Funcional',
+    rpeEasy: 'Fácil',
+    rpeMedium: 'Medio',
+    rpeHard: 'Duro',
+    rpeVeryHard: 'Muy duro',
+    painNone: 'Sin dolor',
+    painYes: 'Con dolor'
+  },
+  en: {
+    language: 'Language',
+    spanish: 'Español',
+    english: 'English',
+    gateTitle: 'FisioBeat',
+    gateText: 'Enter your PIN to view your training plan.',
+    pinLabel: 'Access PIN',
+    pinPlaceholder: '1234',
+    enter: 'Enter',
+    visibleInfo: 'Only today’s and yesterday’s training will be shown.',
+    trainingPlan: 'Training plan',
+    noVisibleWorkout: 'No training is visible for today or yesterday.',
+    today: 'TODAY',
+    yesterday: 'YESTERDAY',
+    completed: 'Completed',
+    pending: 'Pending',
+    noContent: 'No content.',
+    perceivedEffort: 'Perceived effort',
+    pain: 'Discomfort',
+    noteForJacobo: 'Note for Jacobo',
+    notePlaceholder: 'E.g. Knee discomfort / used 60 kg / could not finish...',
+    markCompleted: 'Mark as completed',
+    copyFeedback: 'Copy feedback',
+    copiedFeedback: 'Feedback copied',
+    wrongPin: 'Incorrect PIN or invalid link',
+    enterPin: 'Enter your PIN',
+    completedToast: 'Training marked as completed',
+    missingPlanTitle: 'FisioBeat',
+    missingPlanText: 'There is no training plan loaded in this link.',
+    missingPlanHelp: 'Open the private link sent by Jacobo. If the app was just updated, reopen the client link and add it to the home screen again.',
+    trainerAccess: 'Trainer access',
+    openYoutube: 'Open video on YouTube',
+    watchVideo: 'Watch video',
+    feedbackTitle: 'FisioBeat - Feedback from',
+    date: 'Date',
+    yes: 'Yes',
+    no: 'No',
+    effort: 'Effort',
+    discomfort: 'Discomfort',
+    note: 'Note',
+    blockWarmup: 'Warm-up',
+    blockStrength: 'Strength',
+    blockWod: 'WOD / Functional',
+    rpeEasy: 'Easy',
+    rpeMedium: 'Medium',
+    rpeHard: 'Hard',
+    rpeVeryHard: 'Very hard',
+    painNone: 'No pain',
+    painYes: 'Pain / discomfort'
+  }
+};
+
+const RPE_OPTIONS = [
+  { key: 'easy', labelKey: 'rpeEasy' },
+  { key: 'medium', labelKey: 'rpeMedium' },
+  { key: 'hard', labelKey: 'rpeHard' },
+  { key: 'very_hard', labelKey: 'rpeVeryHard' }
+];
+const PAIN_OPTIONS = [
+  { key: 'none', labelKey: 'painNone' },
+  { key: 'pain', labelKey: 'painYes' }
+];
+
+function getInitialClientLang() {
+  try {
+    const params = new URLSearchParams(location.search || '');
+    const fromUrl = params.get('lang');
+    if (fromUrl === 'en' || fromUrl === 'es') return fromUrl;
+    const saved = localStorage.getItem(CLIENT_LANG_KEY);
+    if (saved === 'en' || saved === 'es') return saved;
+  } catch (error) {}
+  return navigator.language?.toLowerCase().startsWith('en') ? 'en' : 'es';
+}
+
+function t(key) {
+  return I18N[clientLang]?.[key] || I18N.es[key] || key;
+}
+
+function setClientLang(lang) {
+  if (lang !== 'es' && lang !== 'en') return;
+  clientLang = lang;
+  try { localStorage.setItem(CLIENT_LANG_KEY, lang); } catch (error) {}
+  if (clientPayload) renderClientView();
+  else renderClientGate();
+}
+
+function languageSwitchHtml() {
+  return `<div class="language-switch" aria-label="${escapeHtml(t('language'))}">
+    <button type="button" class="${clientLang === 'es' ? 'active' : ''}" data-client-lang="es">ES</button>
+    <button type="button" class="${clientLang === 'en' ? 'active' : ''}" data-client-lang="en">EN</button>
+  </div>`;
+}
+
+function attachLanguageSwitch() {
+  document.querySelectorAll('[data-client-lang]').forEach(btn => {
+    btn.addEventListener('click', () => setClientLang(btn.dataset.clientLang));
+  });
+}
+
+function clientBlockLabel(key) {
+  if (key === 'warmup') return t('blockWarmup');
+  if (key === 'strength') return t('blockStrength');
+  if (key === 'wod') return t('blockWod');
+  return key;
+}
+
+function displayRpe(value) {
+  const found = RPE_OPTIONS.find(o => o.key === value) || RPE_OPTIONS.find(o => I18N.es[o.labelKey] === value);
+  return found ? t(found.labelKey) : (value || '-');
+}
+
+function displayPain(value) {
+  const found = PAIN_OPTIONS.find(o => o.key === value) || PAIN_OPTIONS.find(o => I18N.es[o.labelKey] === value);
+  return found ? t(found.labelKey) : (value || '-');
+}
+
 
 const $app = document.getElementById('app');
 let state = loadState();
@@ -17,6 +186,7 @@ let editingWorkout = null;
 let toastTimer = null;
 let clientPayload = null;
 let clientFeedback = {};
+let clientLang = getInitialClientLang();
 
 function id(prefix = 'id') {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
@@ -31,10 +201,11 @@ function todayKey(offsetDays = 0) {
   return `${y}-${m}-${day}`;
 }
 
-function formatDate(dateKey) {
+function formatDate(dateKey, lang = 'es') {
   const [y, m, d] = dateKey.split('-').map(Number);
   const date = new Date(y, m - 1, d);
-  return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
+  const locale = lang === 'en' ? 'en-GB' : 'es-ES';
+  return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
 }
 
 function escapeHtml(value = '') {
@@ -131,7 +302,7 @@ function youtubeCard(url, title) {
   return `
     <a class="youtube-card" href="${safeUrl}" target="_blank" rel="noreferrer">
       <img src="https://img.youtube.com/vi/${vid}/hqdefault.jpg" alt="Miniatura YouTube" loading="lazy">
-      <div><strong>${safeTitle}</strong><br><span>Abrir vídeo en YouTube</span></div>
+      <div><strong>${safeTitle}</strong><br><span>${escapeHtml(t('openYoutube'))}</span></div>
     </a>`;
 }
 
@@ -167,15 +338,58 @@ function upsertWorkout(workout) {
   saveState();
 }
 
+function isClientPage() {
+  return location.pathname.toLowerCase().endsWith('/client.html') || location.pathname.toLowerCase().endsWith('client.html');
+}
+
+function getPlanTokenFromLocation() {
+  const params = new URLSearchParams(location.search || '');
+  const queryToken = params.get('plan');
+  if (queryToken) return decodeURIComponent(queryToken);
+  if (location.hash.startsWith('#plan=')) return decodeURIComponent(location.hash.slice('#plan='.length));
+  return '';
+}
+
+function getClientCache() {
+  try {
+    const raw = localStorage.getItem(CLIENT_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.token) return parsed;
+  } catch (error) {
+    console.warn('Could not load client cache', error);
+  }
+  return null;
+}
+
+function saveClientToken(token) {
+  if (!token) return;
+  try {
+    localStorage.setItem(CLIENT_CACHE_KEY, JSON.stringify({ token, at: Date.now() }));
+  } catch (error) {
+    console.warn('Could not save client token', error);
+  }
+}
+
+function clearClientToken() {
+  localStorage.removeItem(CLIENT_CACHE_KEY);
+}
+
 function render() {
-  if (location.hash.startsWith('#plan=')) return renderClientGate();
+  const token = getPlanTokenFromLocation();
+  if (token) return renderClientGate(token);
+  if (isClientPage()) {
+    const cached = getClientCache();
+    if (cached?.token) return renderClientGate(cached.token, true);
+    return renderMissingClientPlan();
+  }
   renderAdmin();
 }
 
 window.addEventListener('hashchange', render);
 if ('caches' in window) {
   caches.keys().then(keys => Promise.all(
-    keys.filter(k => k.startsWith('fisiobeat-training-') && k !== 'fisiobeat-training-v4')
+    keys.filter(k => k.startsWith('fisiobeat-training-') && k !== 'fisiobeat-training-v6')
       .map(k => caches.delete(k))
   )).catch(() => {});
 }
@@ -679,11 +893,12 @@ async function generateClientLink(clientId) {
   };
   try {
     const encrypted = await encryptPayload(payload, client.pin);
-    const base = `${location.origin}${location.pathname}`;
-    const url = `${base}#plan=${encrypted}`;
+    const basePath = location.pathname.replace(/[^/]*$/, '');
+    const base = `${location.origin}${basePath}`;
+    const url = `${base}client.html?plan=${encrypted}`;
     modal(`
       <div class="modal-title"><h2>Enlace para ${escapeHtml(client.name)}</h2><button type="button" class="btn ghost" data-close>✕</button></div>
-      <p class="muted">Enlace cifrado con PIN. Envía el enlace y el PIN por WhatsApp.</p>
+      <p class="muted">Enlace cifrado con PIN. Envía el enlace y el PIN por WhatsApp. El cliente podrá elegir Español o English antes de entrar. Importante: debe abrir este enlace y añadirlo a pantalla de inicio desde esa misma página.</p>
       <div class="field"><label>PIN</label><div class="codebox">${escapeHtml(client.pin)}</div></div>
       <div class="field" style="margin-top:12px"><label>Enlace privado</label><div class="codebox" id="generated-url">${escapeHtml(url)}</div></div>
       <div class="btn-row" style="margin-top:16px"><button type="button" class="btn primary" id="copy-generated">Copiar enlace</button><button type="button" class="btn" id="open-generated">Probar enlace</button></div>`);
@@ -745,34 +960,59 @@ function base64UrlDecode(str) {
   return bytes;
 }
 
-function renderClientGate() {
-  const token = decodeURIComponent(location.hash.slice('#plan='.length));
+function renderClientGate(token = '', fromCache = false) {
+  token = token || getPlanTokenFromLocation() || getClientCache()?.token || '';
+  if (!token) return renderMissingClientPlan();
+  saveClientToken(token);
   $app.innerHTML = `
     <div class="client-shell">
       <div class="client-hero">
         <img src="logo.png" alt="FisioBeat logo">
-        <h1>FisioBeat</h1>
-        <p>Introduce tu PIN para ver tu entrenamiento.</p>
+        <h1>${escapeHtml(t('gateTitle'))}</h1>
+        <p>${escapeHtml(t('gateText'))}</p>
+        ${languageSwitchHtml()}
       </div>
       <section class="day-card">
-        <div class="field"><label>PIN de acceso</label><input class="input" id="client-pin" inputmode="numeric" placeholder="1234" autofocus></div>
-        <button type="button" class="btn primary block" id="unlock-plan" style="margin-top:12px">Entrar</button>
-        <p class="muted" style="font-size:13px">Solo se mostrará el entrenamiento de hoy y el de ayer.</p>
+        <div class="field"><label>${escapeHtml(t('pinLabel'))}</label><input class="input" id="client-pin" inputmode="numeric" placeholder="${escapeHtml(t('pinPlaceholder'))}" autofocus></div>
+        <button type="button" class="btn primary block" id="unlock-plan" style="margin-top:12px">${escapeHtml(t('enter'))}</button>
+        <p class="muted" style="font-size:13px">${escapeHtml(t('visibleInfo'))}</p>
       </section>
     </div>`;
+  attachLanguageSwitch();
   document.getElementById('unlock-plan').addEventListener('click', async () => {
     const pin = document.getElementById('client-pin').value.trim();
-    if (!pin) return toast('Introduce el PIN');
+    if (!pin) return toast(t('enterPin'));
     try {
       clientPayload = await decryptPayload(token, pin);
-      localStorage.setItem(CLIENT_CACHE_KEY, JSON.stringify({ token, pin, at: Date.now() }));
+      saveClientToken(token);
       renderClientView();
     } catch (error) {
       console.error(error);
-      toast('PIN incorrecto o enlace no válido');
+      toast(t('wrongPin'));
     }
   });
   document.getElementById('client-pin').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('unlock-plan').click(); });
+}
+
+function renderMissingClientPlan() {
+  $app.innerHTML = `
+    <div class="client-shell">
+      <div class="client-hero">
+        <img src="logo.png" alt="FisioBeat logo">
+        <h1>${escapeHtml(t('missingPlanTitle'))}</h1>
+        <p>${escapeHtml(t('missingPlanText'))}</p>
+        ${languageSwitchHtml()}
+      </div>
+      <section class="day-card">
+        <div class="empty">${escapeHtml(t('missingPlanHelp'))}</div>
+        <button type="button" class="btn" id="go-admin" style="margin-top:14px">${escapeHtml(t('trainerAccess'))}</button>
+      </section>
+    </div>`;
+  attachLanguageSwitch();
+  document.getElementById('go-admin')?.addEventListener('click', () => {
+    clearClientToken();
+    location.href = './index.html';
+  });
 }
 
 function renderClientView() {
@@ -786,10 +1026,12 @@ function renderClientView() {
       <div class="client-hero">
         <img src="logo.png" alt="FisioBeat logo">
         <h1>${escapeHtml(clientPayload.clientName)}</h1>
-        <p>Plan de entrenamiento · ${escapeHtml(formatDate(todayKey()))}</p>
+        <p>${escapeHtml(t('trainingPlan'))} · ${escapeHtml(formatDate(todayKey(), clientLang))}</p>
+        ${languageSwitchHtml()}
       </div>
-      ${workouts.length ? workouts.map(w => dayCard(w)).join('') : `<section class="day-card"><div class="empty">No hay entrenamiento visible para hoy ni ayer.</div></section>`}
+      ${workouts.length ? workouts.map(w => dayCard(w)).join('') : `<section class="day-card"><div class="empty">${escapeHtml(t('noVisibleWorkout'))}</div></section>`}
     </div>`;
+  attachLanguageSwitch();
   document.querySelectorAll('[data-rpe]').forEach(btn => btn.addEventListener('click', () => setClientRpe(btn.dataset.workout, btn.dataset.rpe)));
   document.querySelectorAll('[data-pain]').forEach(btn => btn.addEventListener('click', () => setClientPain(btn.dataset.workout, btn.dataset.pain)));
   document.querySelectorAll('[data-complete]').forEach(btn => btn.addEventListener('click', () => completeWorkout(btn.dataset.complete)));
@@ -797,27 +1039,27 @@ function renderClientView() {
 }
 
 function dayCard(workout) {
-  const dayLabel = workout.date === todayKey() ? 'HOY' : 'AYER';
+  const dayLabel = workout.date === todayKey() ? t('today') : t('yesterday');
   const fb = clientFeedback[workout.id] || {};
   return `<section class="day-card">
     <div class="day-title">
-      <div><h2>${dayLabel}</h2><p class="muted">${escapeHtml(formatDate(workout.date))}</p></div>
-      ${fb.completed ? '<span class="badge green">Completado</span>' : '<span class="badge orange">Pendiente</span>'}
+      <div><h2>${dayLabel}</h2><p class="muted">${escapeHtml(formatDate(workout.date, clientLang))}</p></div>
+      ${fb.completed ? `<span class="badge green">${escapeHtml(t('completed'))}</span>` : `<span class="badge orange">${escapeHtml(t('pending'))}</span>`}
     </div>
     <div class="accordion">
-      ${BLOCKS.map((b, idx) => blockView(b, workout.blocks[b.key], idx === 0)).join('')}
+      ${BLOCKS.map((b, idx) => blockView({ ...b, label: clientBlockLabel(b.key) }, workout.blocks[b.key], idx === 0)).join('')}
     </div>
     <div class="feedback">
-      <label class="muted">Esfuerzo percibido</label>
+      <label class="muted">${escapeHtml(t('perceivedEffort'))}</label>
       <div class="segmented">
-        ${['Fácil','Medio','Duro','Muy duro'].map(v => `<button type="button" class="${fb.rpe === v ? 'active' : ''}" data-workout="${workout.id}" data-rpe="${v}">${v}</button>`).join('')}
+        ${RPE_OPTIONS.map(o => `<button type="button" class="${(fb.rpe === o.key || fb.rpe === I18N.es[o.labelKey]) ? 'active' : ''}" data-workout="${workout.id}" data-rpe="${o.key}">${escapeHtml(t(o.labelKey))}</button>`).join('')}
       </div>
-      <label class="muted">Molestias</label>
+      <label class="muted">${escapeHtml(t('pain'))}</label>
       <div class="segmented" style="grid-template-columns:repeat(2,1fr)">
-        ${['Sin dolor','Con dolor'].map(v => `<button type="button" class="${fb.pain === v ? 'active' : ''}" data-workout="${workout.id}" data-pain="${v}">${v}</button>`).join('')}
+        ${PAIN_OPTIONS.map(o => `<button type="button" class="${(fb.pain === o.key || fb.pain === I18N.es[o.labelKey]) ? 'active' : ''}" data-workout="${workout.id}" data-pain="${o.key}">${escapeHtml(t(o.labelKey))}</button>`).join('')}
       </div>
-      <div class="field"><label>Nota para Jacobo</label><textarea class="textarea" data-note="${workout.id}" placeholder="Ej. Me molestó la rodilla / usé 60 kg / no pude acabar...">${escapeHtml(fb.note || '')}</textarea></div>
-      <div class="btn-row"><button type="button" class="btn primary" data-complete="${workout.id}">Marcar completado</button><button type="button" class="btn" data-copy-feedback="${workout.id}">Copiar feedback</button></div>
+      <div class="field"><label>${escapeHtml(t('noteForJacobo'))}</label><textarea class="textarea" data-note="${workout.id}" placeholder="${escapeHtml(t('notePlaceholder'))}">${escapeHtml(fb.note || '')}</textarea></div>
+      <div class="btn-row"><button type="button" class="btn primary" data-complete="${workout.id}">${escapeHtml(t('markCompleted'))}</button><button type="button" class="btn" data-copy-feedback="${workout.id}">${escapeHtml(t('copyFeedback'))}</button></div>
     </div>
   </section>`;
 }
@@ -828,7 +1070,7 @@ function blockView(block, data, open) {
   return `<details ${open ? 'open' : ''}>
     <summary><span>${block.label}</span><span>⌄</span></summary>
     <div class="content">
-      ${hasContent ? '' : '<div class="empty">Sin contenido.</div>'}
+      ${hasContent ? '' : `<div class="empty">${escapeHtml(t('noContent'))}</div>`}
       ${data.notes ? `<pre>${escapeHtml(data.notes)}</pre>` : ''}
       <div class="exercise-list">
         ${(data.items || []).map(item => `<div class="exercise-pill"><strong>${escapeHtml(item.name)}</strong>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}${youtubeCard(item.youtubeUrl, item.name)}</div>`).join('')}
@@ -865,18 +1107,18 @@ function completeWorkout(workoutId) {
   clientFeedback[workoutId].completed = true;
   clientFeedback[workoutId].completedAt = new Date().toISOString();
   renderClientView();
-  toast('Entrenamiento marcado como completado');
+  toast(t('completedToast'));
 }
 
 function copyFeedback(workoutId) {
   persistVisibleNotes();
   const workout = clientPayload.workouts.find(w => w.id === workoutId);
   const fb = clientFeedback[workoutId] || {};
-  const text = `FisioBeat - Feedback de ${clientPayload.clientName}\nFecha: ${workout?.date || ''}\nCompletado: ${fb.completed ? 'Sí' : 'No'}\nEsfuerzo: ${fb.rpe || '-'}\nMolestias: ${fb.pain || '-'}\nNota: ${fb.note || '-'}`;
+  const text = `${t('feedbackTitle')} ${clientPayload.clientName}\n${t('date')}: ${workout?.date || ''}\n${t('completed')}: ${fb.completed ? t('yes') : t('no')}\n${t('effort')}: ${displayRpe(fb.rpe)}\n${t('discomfort')}: ${displayPain(fb.pain)}\n${t('note')}: ${fb.note || '-'}`;
   if (navigator.share) {
-    navigator.share({ text }).catch(() => copyText(text, 'Feedback copiado'));
+    navigator.share({ text }).catch(() => copyText(text, t('copiedFeedback')));
   } else {
-    copyText(text, 'Feedback copiado');
+    copyText(text, t('copiedFeedback'));
   }
 }
 
