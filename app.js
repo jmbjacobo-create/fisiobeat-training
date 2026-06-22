@@ -1,4 +1,4 @@
-const APP_VERSION = '2026.06.22.6';
+const APP_VERSION = '2026.06.22.7';
 const DB_KEY = 'fisiobeat_training_admin_v1';
 const CLIENT_CACHE_KEY = 'fisiobeat_training_client_cache_v1';
 const CLIENT_LANG_KEY = 'fisiobeat_training_client_lang_v1';
@@ -27,6 +27,7 @@ const I18N = {
     completed: 'Completado',
     pending: 'Pendiente',
     noContent: 'Sin contenido.',
+    blockNotesLabel: 'Indicaciones del bloque',
     perceivedEffort: 'Esfuerzo percibido',
     pain: 'Molestias',
     noteForJacobo: 'Nota para Jacobo',
@@ -77,6 +78,7 @@ const I18N = {
     completed: 'Completed',
     pending: 'Pending',
     noContent: 'No content.',
+    blockNotesLabel: 'Block instructions',
     perceivedEffort: 'Perceived effort',
     pain: 'Discomfort',
     noteForJacobo: 'Note for Jacobo',
@@ -389,7 +391,7 @@ function render() {
 window.addEventListener('hashchange', render);
 if ('caches' in window) {
   caches.keys().then(keys => Promise.all(
-    keys.filter(k => k.startsWith('fisiobeat-training-') && k !== 'fisiobeat-training-v6')
+    keys.filter(k => k.startsWith('fisiobeat-training-') && k !== 'fisiobeat-training-v7')
       .map(k => caches.delete(k))
   )).catch(() => {});
 }
@@ -608,6 +610,7 @@ function renderPlanner(main, options = {}) {
   main.querySelectorAll('[data-add-exercise]').forEach(btn => btn.addEventListener('click', () => addExerciseToBlock(btn.dataset.addExercise)));
   main.querySelectorAll('[data-add-custom]').forEach(btn => btn.addEventListener('click', () => addCustomToBlock(btn.dataset.addCustom)));
   main.querySelectorAll('[data-remove-item]').forEach(btn => btn.addEventListener('click', () => removeItem(btn.dataset.block, btn.dataset.removeItem)));
+  main.querySelectorAll('[data-notes]').forEach(textarea => textarea.addEventListener('input', () => savePlannerNotesSilently()));
   main.querySelectorAll('[data-load-template]').forEach(btn => btn.addEventListener('click', () => loadTemplate(btn.dataset.loadTemplate)));
 }
 
@@ -657,6 +660,13 @@ function syncWorkoutFromUI() {
     editingWorkout.blocks[b.key].items = Array.isArray(editingWorkout.blocks[b.key].items) ? editingWorkout.blocks[b.key].items : [];
     editingWorkout.blocks[b.key].notes = textarea ? textarea.value : (editingWorkout.blocks[b.key].notes || '');
   });
+}
+
+function savePlannerNotesSilently() {
+  if (!editingWorkout) return;
+  syncWorkoutFromUI();
+  if (!editingWorkout.clientId || !editingWorkout.date) return;
+  upsertWorkout(JSON.parse(JSON.stringify(editingWorkout)));
 }
 
 function persistPlannerDraft(message = 'Cambios guardados') {
@@ -880,6 +890,16 @@ function renderDeploy(main) {
 async function generateClientLink(clientId) {
   const client = state.clients.find(c => c.id === clientId);
   if (!client) return;
+  // Si el entrenador está en Planificar y acaba de escribir notas sin pulsar guardar,
+  // las sincronizamos antes de crear el enlace cifrado del cliente.
+  if (editingWorkout && editingWorkout.clientId === clientId) {
+    try {
+      syncWorkoutFromUI();
+      upsertWorkout(JSON.parse(JSON.stringify(editingWorkout)));
+    } catch (error) {
+      console.warn('No se pudo sincronizar el borrador antes de generar enlace', error);
+    }
+  }
   const workouts = state.workouts
     .filter(w => w.clientId === clientId)
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -1066,14 +1086,16 @@ function dayCard(workout) {
 
 function blockView(block, data, open) {
   data = data || emptyBlock();
-  const hasContent = (data.notes && data.notes.trim()) || data.items?.length;
+  const notes = (data.notes || '').trim();
+  const items = Array.isArray(data.items) ? data.items : [];
+  const hasContent = Boolean(notes) || items.length > 0;
   return `<details ${open ? 'open' : ''}>
     <summary><span>${block.label}</span><span>⌄</span></summary>
     <div class="content">
       ${hasContent ? '' : `<div class="empty">${escapeHtml(t('noContent'))}</div>`}
-      ${data.notes ? `<pre>${escapeHtml(data.notes)}</pre>` : ''}
+      ${notes ? `<div class="block-notes"><div class="block-notes-label">${escapeHtml(t('blockNotesLabel'))}</div><pre>${escapeHtml(notes)}</pre></div>` : ''}
       <div class="exercise-list">
-        ${(data.items || []).map(item => `<div class="exercise-pill"><strong>${escapeHtml(item.name)}</strong>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}${youtubeCard(item.youtubeUrl, item.name)}</div>`).join('')}
+        ${items.map(item => `<div class="exercise-pill"><strong>${escapeHtml(item.name)}</strong>${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}${youtubeCard(item.youtubeUrl, item.name)}</div>`).join('')}
       </div>
     </div>
   </details>`;

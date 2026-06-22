@@ -1,4 +1,4 @@
-const CACHE = 'fisiobeat-training-v6';
+const CACHE = 'fisiobeat-training-v7';
 const ASSETS = ['./', './index.html', './client.html', './style.css', './app.js', './manifest.webmanifest', './logo.png'];
 
 self.addEventListener('install', event => {
