@@ -341,13 +341,18 @@ function deleteClient(clientId) {
   toast('Cliente borrado');
 }
 
-function renderPlanner(main) {
+function renderPlanner(main, options = {}) {
   if (!state.clients.length) {
     main.innerHTML = `<section class="card"><div class="empty">Primero crea un cliente.</div></section>`;
     return;
   }
   if (!selectedClientId) selectedClientId = state.clients[0].id;
-  const workout = getWorkout(selectedClientId, selectedWorkoutDate) || emptyWorkout(selectedClientId, selectedWorkoutDate);
+  const savedWorkout = getWorkout(selectedClientId, selectedWorkoutDate);
+  const reuseDraft = options.keepDraft === true
+    && editingWorkout
+    && editingWorkout.clientId === selectedClientId
+    && editingWorkout.date === selectedWorkoutDate;
+  const workout = reuseDraft ? editingWorkout : (savedWorkout || emptyWorkout(selectedClientId, selectedWorkoutDate));
   editingWorkout = JSON.parse(JSON.stringify(workout));
   main.innerHTML = `
     <section class="card">
@@ -423,6 +428,7 @@ function syncWorkoutFromUI() {
   BLOCKS.forEach(b => {
     const textarea = document.querySelector(`[data-notes="${b.key}"]`);
     editingWorkout.blocks[b.key] = editingWorkout.blocks[b.key] || emptyBlock();
+    editingWorkout.blocks[b.key].items = Array.isArray(editingWorkout.blocks[b.key].items) ? editingWorkout.blocks[b.key].items : [];
     editingWorkout.blocks[b.key].notes = textarea ? textarea.value : '';
   });
 }
@@ -433,7 +439,8 @@ function addExerciseToBlock(blockKey) {
   const ex = state.exercises.find(e => e.id === select.value);
   if (!ex) return toast('Elige un ejercicio');
   editingWorkout.blocks[blockKey].items.push({ ...ex, uid: id('item') });
-  renderPlanner(document.getElementById('main'));
+  renderPlanner(document.getElementById('main'), { keepDraft: true });
+  toast('Ejercicio añadido. Pulsa Guardar entreno para dejarlo guardado.');
 }
 
 function addCustomToBlock(blockKey) {
@@ -457,14 +464,16 @@ function addCustomToBlock(blockKey) {
       youtubeUrl: document.getElementById('custom-youtube').value.trim()
     });
     closeModal();
-    renderPlanner(document.getElementById('main'));
+    renderPlanner(document.getElementById('main'), { keepDraft: true });
+    toast('Ejercicio añadido. Pulsa Guardar entreno para dejarlo guardado.');
   });
 }
 
 function removeItem(blockKey, itemUid) {
   syncWorkoutFromUI();
   editingWorkout.blocks[blockKey].items = editingWorkout.blocks[blockKey].items.filter(item => (item.uid || item.id) !== itemUid);
-  renderPlanner(document.getElementById('main'));
+  renderPlanner(document.getElementById('main'), { keepDraft: true });
+  toast('Ejercicio quitado. Pulsa Guardar entreno para dejarlo guardado.');
 }
 
 function saveWorkoutFromUI() {
@@ -518,8 +527,8 @@ function loadTemplate(templateId) {
   if (!tpl) return;
   syncWorkoutFromUI();
   editingWorkout.blocks = JSON.parse(JSON.stringify(tpl.blocks));
-  renderPlanner(document.getElementById('main'));
-  toast('Plantilla cargada');
+  renderPlanner(document.getElementById('main'), { keepDraft: true });
+  toast('Plantilla cargada. Pulsa Guardar entreno para dejarla guardada.');
 }
 
 function renderExercises(main) {
