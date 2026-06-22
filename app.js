@@ -1,3 +1,4 @@
+const APP_VERSION = '2026.06.22.4';
 const DB_KEY = 'fisiobeat_training_admin_v1';
 const CLIENT_CACHE_KEY = 'fisiobeat_training_client_cache_v1';
 const BLOCKS = [
@@ -172,8 +173,14 @@ function render() {
 }
 
 window.addEventListener('hashchange', render);
+if ('caches' in window) {
+  caches.keys().then(keys => Promise.all(
+    keys.filter(k => k.startsWith('fisiobeat-training-') && k !== 'fisiobeat-training-v4')
+      .map(k => caches.delete(k))
+  )).catch(() => {});
+}
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`).then(reg => reg.update()).catch(() => {});
 }
 render();
 
@@ -186,7 +193,7 @@ function renderAdmin() {
             <img src="logo.png" alt="FisioBeat logo">
             <div class="brand-title"><strong>FISIOBEAT</strong><span>Training Admin</span></div>
           </div>
-          <button class="btn ghost" data-action="backup">Backup</button>
+          <button type="button" class="btn ghost" data-action="backup">Backup</button>
         </div>
       </div>
       <div class="grid">
@@ -217,7 +224,7 @@ function renderAdmin() {
 }
 
 function navButton(tab, label, meta) {
-  return `<button class="nav-btn ${currentTab === tab ? 'active' : ''}" data-tab="${tab}"><span>${label}</span><small>${meta}</small></button>`;
+  return `<button type="button" class="nav-btn ${currentTab === tab ? 'active' : ''}" data-tab="${tab}"><span>${label}</span><small>${meta}</small></button>`;
 }
 
 function renderDashboard(main) {
@@ -228,9 +235,9 @@ function renderDashboard(main) {
       <div class="card-header">
         <div>
           <h1>FisioBeat Training</h1>
-          <p>App privada para entregar entrenamientos diarios con enlace + PIN.</p>
+          <p>App privada para entregar entrenamientos diarios con enlace + PIN. <span class="badge">v${APP_VERSION}</span></p>
         </div>
-        <button class="btn primary" data-go="clients">Crear cliente</button>
+        <button type="button" class="btn primary" data-go="clients">Crear cliente</button>
       </div>
       <div class="form-grid three">
         ${statCard('Clientes', state.clients.length, 'Enlaces privados')}
@@ -258,7 +265,7 @@ function renderClients(main) {
     <section class="card">
       <div class="card-header">
         <div><h2>Clientes</h2><p>Cada cliente tiene su PIN y su enlace cifrado.</p></div>
-        <button class="btn primary" data-action="new-client">Nuevo cliente</button>
+        <button type="button" class="btn primary" data-action="new-client">Nuevo cliente</button>
       </div>
       <div class="list">
         ${state.clients.length ? state.clients.map(clientItem).join('') : '<div class="empty">Aún no tienes clientes. Crea el primero para generar su enlace.</div>'}
@@ -284,10 +291,10 @@ function clientItem(c) {
         <div class="item-meta">PIN: <strong>${escapeHtml(c.pin || '----')}</strong> · ${count} entrenamientos · ${escapeHtml(c.email || 'sin email')}</div>
       </div>
       <div class="btn-row">
-        <button class="btn" data-plan-client="${c.id}">Planificar</button>
-        <button class="btn primary" data-link-client="${c.id}">Generar enlace</button>
-        <button class="btn" data-edit-client="${c.id}">Editar</button>
-        <button class="btn danger" data-delete-client="${c.id}">Borrar</button>
+        <button type="button" class="btn" data-plan-client="${c.id}">Planificar</button>
+        <button type="button" class="btn primary" data-link-client="${c.id}">Generar enlace</button>
+        <button type="button" class="btn" data-edit-client="${c.id}">Editar</button>
+        <button type="button" class="btn danger" data-delete-client="${c.id}">Borrar</button>
       </div>
     </div>`;
 }
@@ -295,7 +302,7 @@ function clientItem(c) {
 function showClientModal(clientId = '') {
   const client = state.clients.find(c => c.id === clientId) || { id: '', name: '', email: '', phone: '', pin: randomPin() };
   modal(`
-    <div class="modal-title"><h2>${clientId ? 'Editar cliente' : 'Nuevo cliente'}</h2><button class="btn ghost" data-close>✕</button></div>
+    <div class="modal-title"><h2>${clientId ? 'Editar cliente' : 'Nuevo cliente'}</h2><button type="button" class="btn ghost" data-close>✕</button></div>
     <div class="form-grid">
       <div class="field"><label>Nombre</label><input class="input" id="client-name" value="${escapeHtml(client.name)}" placeholder="Ej. Pepe"></div>
       <div class="field"><label>PIN</label><input class="input" id="client-pin" value="${escapeHtml(client.pin)}" maxlength="8" placeholder="1234"><span class="help">Recomendado: 4 cifras.</span></div>
@@ -303,8 +310,8 @@ function showClientModal(clientId = '') {
       <div class="field"><label>Teléfono opcional</label><input class="input" id="client-phone" value="${escapeHtml(client.phone || '')}"></div>
     </div>
     <div class="btn-row" style="margin-top:16px;justify-content:flex-end">
-      <button class="btn" data-close>Cancelar</button>
-      <button class="btn primary" id="save-client">Guardar</button>
+      <button type="button" class="btn" data-close>Cancelar</button>
+      <button type="button" class="btn primary" id="save-client">Guardar</button>
     </div>`);
   document.getElementById('save-client').addEventListener('click', () => {
     const name = document.getElementById('client-name').value.trim();
@@ -359,9 +366,9 @@ function renderPlanner(main, options = {}) {
       <div class="card-header">
         <div><h2>Planificador</h2><p>Crea la planificación diaria. El cliente solo verá hoy y ayer cuando abra su enlace.</p></div>
         <div class="btn-row">
-          <button class="btn" id="copy-day">Duplicar día</button>
-          <button class="btn" id="save-template">Guardar plantilla</button>
-          <button class="btn primary" id="save-workout">Guardar entreno</button>
+          <button type="button" class="btn" id="copy-day">Duplicar día</button>
+          <button type="button" class="btn" id="save-template">Guardar plantilla</button>
+          <button type="button" class="btn primary" id="save-workout">Guardar entreno</button>
         </div>
       </div>
       <div class="form-grid">
@@ -376,7 +383,7 @@ function renderPlanner(main, options = {}) {
     </section>
     <section class="card">
       <div class="card-header"><div><h2>Plantillas</h2><p>Carga una plantilla guardada en este entrenamiento.</p></div></div>
-      ${state.templates.length ? `<div class="btn-row">${state.templates.map(t => `<button class="btn" data-load-template="${t.id}">${escapeHtml(t.name)}</button>`).join('')}</div>` : '<div class="empty">Aún no hay plantillas guardadas.</div>'}
+      ${state.templates.length ? `<div class="btn-row">${state.templates.map(t => `<button type="button" class="btn" data-load-template="${t.id}">${escapeHtml(t.name)}</button>`).join('')}</div>` : '<div class="empty">Aún no hay plantillas guardadas.</div>'}
     </section>`;
 
   document.getElementById('planner-client').addEventListener('change', e => { selectedClientId = e.target.value; renderAdmin(); });
@@ -401,8 +408,8 @@ function blockEditor(block, data) {
           <option value="">Elegir ejercicio</option>
           ${state.exercises.map(ex => `<option value="${ex.id}">${escapeHtml(ex.name)} · ${escapeHtml(ex.category)}</option>`).join('')}
         </select></div>
-        <button class="btn" data-add-exercise="${block.key}">Añadir ejercicio</button>
-        <button class="btn" data-add-custom="${block.key}">Ejercicio rápido</button>
+        <button type="button" class="btn" data-add-exercise="${block.key}">Añadir ejercicio</button>
+        <button type="button" class="btn" data-add-custom="${block.key}">Ejercicio rápido</button>
       </div>
       <div class="exercise-list">
         ${data.items.length ? data.items.map(item => exercisePill(block.key, item)).join('') : '<div class="empty">Sin ejercicios añadidos.</div>'}
@@ -414,7 +421,7 @@ function exercisePill(blockKey, item) {
   return `<div class="exercise-pill">
     <div class="exercise-pill-head">
       <div><strong>${escapeHtml(item.name)}</strong><div class="item-meta">${escapeHtml(item.category || '')}</div></div>
-      <button class="btn danger" data-block="${blockKey}" data-remove-item="${item.uid || item.id}">Quitar</button>
+      <button type="button" class="btn danger" data-block="${blockKey}" data-remove-item="${item.uid || item.id}">Quitar</button>
     </div>
     ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}
     ${youtubeCard(item.youtubeUrl, item.name)}
@@ -423,40 +430,59 @@ function exercisePill(blockKey, item) {
 
 function syncWorkoutFromUI() {
   if (!editingWorkout) editingWorkout = emptyWorkout(selectedClientId, selectedWorkoutDate);
-  editingWorkout.clientId = document.getElementById('planner-client')?.value || selectedClientId;
-  editingWorkout.date = document.getElementById('planner-date')?.value || selectedWorkoutDate;
+  const clientSelect = document.getElementById('planner-client');
+  const dateInput = document.getElementById('planner-date');
+  editingWorkout.clientId = clientSelect?.value || selectedClientId || state.clients[0]?.id || '';
+  editingWorkout.date = dateInput?.value || selectedWorkoutDate || todayKey();
+  selectedClientId = editingWorkout.clientId;
+  selectedWorkoutDate = editingWorkout.date;
+  editingWorkout.blocks = editingWorkout.blocks || {};
   BLOCKS.forEach(b => {
     const textarea = document.querySelector(`[data-notes="${b.key}"]`);
     editingWorkout.blocks[b.key] = editingWorkout.blocks[b.key] || emptyBlock();
     editingWorkout.blocks[b.key].items = Array.isArray(editingWorkout.blocks[b.key].items) ? editingWorkout.blocks[b.key].items : [];
-    editingWorkout.blocks[b.key].notes = textarea ? textarea.value : '';
+    editingWorkout.blocks[b.key].notes = textarea ? textarea.value : (editingWorkout.blocks[b.key].notes || '');
   });
+}
+
+function persistPlannerDraft(message = 'Cambios guardados') {
+  if (!editingWorkout || !editingWorkout.clientId || !editingWorkout.date) return;
+  selectedClientId = editingWorkout.clientId;
+  selectedWorkoutDate = editingWorkout.date;
+  upsertWorkout(JSON.parse(JSON.stringify(editingWorkout)));
+  currentTab = 'planner';
+  renderPlanner(document.getElementById('main'), { keepDraft: true });
+  toast(message);
 }
 
 function addExerciseToBlock(blockKey) {
   syncWorkoutFromUI();
   const select = document.querySelector(`[data-select-ex="${blockKey}"]`);
-  const ex = state.exercises.find(e => e.id === select.value);
-  if (!ex) return toast('Elige un ejercicio');
+  const ex = state.exercises.find(e => e.id === select?.value);
+  if (!ex) return toast('Elige un ejercicio de la biblioteca');
+  editingWorkout.blocks[blockKey] = editingWorkout.blocks[blockKey] || emptyBlock();
+  editingWorkout.blocks[blockKey].items = Array.isArray(editingWorkout.blocks[blockKey].items) ? editingWorkout.blocks[blockKey].items : [];
   editingWorkout.blocks[blockKey].items.push({ ...ex, uid: id('item') });
-  renderPlanner(document.getElementById('main'), { keepDraft: true });
-  toast('Ejercicio añadido. Pulsa Guardar entreno para dejarlo guardado.');
+  persistPlannerDraft('Ejercicio añadido y guardado');
 }
 
 function addCustomToBlock(blockKey) {
   syncWorkoutFromUI();
   modal(`
-    <div class="modal-title"><h2>Ejercicio rápido</h2><button class="btn ghost" data-close>✕</button></div>
+    <div class="modal-title"><h2>Ejercicio rápido</h2><button type="button" class="btn ghost" data-close>✕</button></div>
     <div class="form-grid">
       <div class="field"><label>Nombre</label><input class="input" id="custom-name" placeholder="Ej. Press banca 5x5"></div>
       <div class="field"><label>Categoría</label><select class="select" id="custom-category">${CATEGORIES.map(c => `<option>${c}</option>`).join('')}</select></div>
     </div>
     <div class="field" style="margin-top:12px"><label>Descripción</label><textarea class="textarea" id="custom-description" placeholder="Series, repeticiones, carga, descanso..."></textarea></div>
     <div class="field" style="margin-top:12px"><label>Enlace YouTube opcional</label><input class="input" id="custom-youtube" placeholder="https://youtube.com/..."></div>
-    <div class="btn-row" style="margin-top:16px;justify-content:flex-end"><button class="btn" data-close>Cancelar</button><button class="btn primary" id="save-custom">Añadir</button></div>`);
+    <div class="btn-row" style="margin-top:16px;justify-content:flex-end"><button type="button" class="btn" data-close>Cancelar</button><button type="button" class="btn primary" id="save-custom">Añadir</button></div>`);
   document.getElementById('save-custom').addEventListener('click', () => {
     const name = document.getElementById('custom-name').value.trim();
     if (!name) return toast('Falta el nombre');
+    syncWorkoutFromUI();
+    editingWorkout.blocks[blockKey] = editingWorkout.blocks[blockKey] || emptyBlock();
+    editingWorkout.blocks[blockKey].items = Array.isArray(editingWorkout.blocks[blockKey].items) ? editingWorkout.blocks[blockKey].items : [];
     editingWorkout.blocks[blockKey].items.push({
       id: id('custom'), uid: id('item'), name,
       category: document.getElementById('custom-category').value,
@@ -464,16 +490,15 @@ function addCustomToBlock(blockKey) {
       youtubeUrl: document.getElementById('custom-youtube').value.trim()
     });
     closeModal();
-    renderPlanner(document.getElementById('main'), { keepDraft: true });
-    toast('Ejercicio añadido. Pulsa Guardar entreno para dejarlo guardado.');
+    persistPlannerDraft('Ejercicio rápido añadido y guardado');
   });
 }
 
 function removeItem(blockKey, itemUid) {
   syncWorkoutFromUI();
+  editingWorkout.blocks[blockKey] = editingWorkout.blocks[blockKey] || emptyBlock();
   editingWorkout.blocks[blockKey].items = editingWorkout.blocks[blockKey].items.filter(item => (item.uid || item.id) !== itemUid);
-  renderPlanner(document.getElementById('main'), { keepDraft: true });
-  toast('Ejercicio quitado. Pulsa Guardar entreno para dejarlo guardado.');
+  persistPlannerDraft('Ejercicio quitado y guardado');
 }
 
 function saveWorkoutFromUI() {
@@ -488,9 +513,9 @@ function saveWorkoutFromUI() {
 function showDuplicateModal() {
   syncWorkoutFromUI();
   modal(`
-    <div class="modal-title"><h2>Duplicar entrenamiento</h2><button class="btn ghost" data-close>✕</button></div>
+    <div class="modal-title"><h2>Duplicar entrenamiento</h2><button type="button" class="btn ghost" data-close>✕</button></div>
     <div class="field"><label>Duplicar este entrenamiento al día</label><input class="input" id="duplicate-date" type="date" value="${todayKey(1)}"></div>
-    <div class="btn-row" style="margin-top:16px;justify-content:flex-end"><button class="btn" data-close>Cancelar</button><button class="btn primary" id="do-duplicate">Duplicar</button></div>`);
+    <div class="btn-row" style="margin-top:16px;justify-content:flex-end"><button type="button" class="btn" data-close>Cancelar</button><button type="button" class="btn primary" id="do-duplicate">Duplicar</button></div>`);
   document.getElementById('do-duplicate').addEventListener('click', () => {
     const newDate = document.getElementById('duplicate-date').value;
     if (!newDate) return toast('Elige fecha');
@@ -508,9 +533,9 @@ function showDuplicateModal() {
 function saveTemplateFromUI() {
   syncWorkoutFromUI();
   modal(`
-    <div class="modal-title"><h2>Guardar plantilla</h2><button class="btn ghost" data-close>✕</button></div>
+    <div class="modal-title"><h2>Guardar plantilla</h2><button type="button" class="btn ghost" data-close>✕</button></div>
     <div class="field"><label>Nombre de plantilla</label><input class="input" id="template-name" placeholder="Ej. Pierna fuerza + metcon"></div>
-    <div class="btn-row" style="margin-top:16px;justify-content:flex-end"><button class="btn" data-close>Cancelar</button><button class="btn primary" id="do-template">Guardar</button></div>`);
+    <div class="btn-row" style="margin-top:16px;justify-content:flex-end"><button type="button" class="btn" data-close>Cancelar</button><button type="button" class="btn primary" id="do-template">Guardar</button></div>`);
   document.getElementById('do-template').addEventListener('click', () => {
     const name = document.getElementById('template-name').value.trim();
     if (!name) return toast('Falta el nombre');
@@ -526,9 +551,12 @@ function loadTemplate(templateId) {
   const tpl = state.templates.find(t => t.id === templateId);
   if (!tpl) return;
   syncWorkoutFromUI();
-  editingWorkout.blocks = JSON.parse(JSON.stringify(tpl.blocks));
-  renderPlanner(document.getElementById('main'), { keepDraft: true });
-  toast('Plantilla cargada. Pulsa Guardar entreno para dejarla guardada.');
+  editingWorkout.blocks = JSON.parse(JSON.stringify(tpl.blocks || {}));
+  BLOCKS.forEach(b => {
+    editingWorkout.blocks[b.key] = editingWorkout.blocks[b.key] || emptyBlock();
+    editingWorkout.blocks[b.key].items = Array.isArray(editingWorkout.blocks[b.key].items) ? editingWorkout.blocks[b.key].items : [];
+  });
+  persistPlannerDraft('Plantilla cargada y guardada');
 }
 
 function renderExercises(main) {
@@ -536,7 +564,7 @@ function renderExercises(main) {
     <section class="card">
       <div class="card-header">
         <div><h2>Biblioteca de ejercicios</h2><p>Guarda tus ejercicios principales con explicación y vídeo de YouTube.</p></div>
-        <button class="btn primary" data-action="new-exercise">Nuevo ejercicio</button>
+        <button type="button" class="btn primary" data-action="new-exercise">Nuevo ejercicio</button>
       </div>
       <div class="list">
         ${state.exercises.length ? state.exercises.map(exerciseItem).join('') : '<div class="empty">Crea ejercicios reutilizables.</div>'}
@@ -555,8 +583,8 @@ function exerciseItem(ex) {
       ${ex.description ? `<div class="item-meta">${escapeHtml(ex.description).slice(0, 120)}${ex.description.length > 120 ? '...' : ''}</div>` : ''}
     </div>
     <div class="btn-row">
-      <button class="btn" data-edit-ex="${ex.id}">Editar</button>
-      <button class="btn danger" data-delete-ex="${ex.id}">Borrar</button>
+      <button type="button" class="btn" data-edit-ex="${ex.id}">Editar</button>
+      <button type="button" class="btn danger" data-delete-ex="${ex.id}">Borrar</button>
     </div>
   </div>`;
 }
@@ -564,14 +592,14 @@ function exerciseItem(ex) {
 function showExerciseModal(exId = '') {
   const ex = state.exercises.find(e => e.id === exId) || { name: '', category: 'Fuerza', description: '', youtubeUrl: '' };
   modal(`
-    <div class="modal-title"><h2>${exId ? 'Editar ejercicio' : 'Nuevo ejercicio'}</h2><button class="btn ghost" data-close>✕</button></div>
+    <div class="modal-title"><h2>${exId ? 'Editar ejercicio' : 'Nuevo ejercicio'}</h2><button type="button" class="btn ghost" data-close>✕</button></div>
     <div class="form-grid">
       <div class="field"><label>Nombre</label><input class="input" id="ex-name" value="${escapeHtml(ex.name)}" placeholder="Ej. Sentadilla"></div>
       <div class="field"><label>Categoría</label><select class="select" id="ex-category">${CATEGORIES.map(c => `<option ${c === ex.category ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
     </div>
     <div class="field" style="margin-top:12px"><label>Descripción / instrucciones</label><textarea class="textarea" id="ex-description" placeholder="Series, técnica, puntos clave...">${escapeHtml(ex.description)}</textarea></div>
     <div class="field" style="margin-top:12px"><label>Enlace YouTube</label><input class="input" id="ex-youtube" value="${escapeHtml(ex.youtubeUrl)}" placeholder="https://youtube.com/..."></div>
-    <div class="btn-row" style="margin-top:16px;justify-content:flex-end"><button class="btn" data-close>Cancelar</button><button class="btn primary" id="save-ex">Guardar</button></div>`);
+    <div class="btn-row" style="margin-top:16px;justify-content:flex-end"><button type="button" class="btn" data-close>Cancelar</button><button type="button" class="btn primary" id="save-ex">Guardar</button></div>`);
   document.getElementById('save-ex').addEventListener('click', () => {
     const name = document.getElementById('ex-name').value.trim();
     if (!name) return toast('Falta el nombre');
@@ -607,7 +635,7 @@ function renderTemplates(main) {
         ${state.templates.length ? state.templates.map(tpl => `
           <div class="item">
             <div><div class="item-title">${escapeHtml(tpl.name)}</div><div class="item-meta">${new Date(tpl.createdAt).toLocaleDateString('es-ES')}</div></div>
-            <button class="btn danger" data-delete-template="${tpl.id}">Borrar</button>
+            <button type="button" class="btn danger" data-delete-template="${tpl.id}">Borrar</button>
           </div>`).join('') : '<div class="empty">Guarda plantillas desde el planificador.</div>'}
       </div>
     </section>`;
@@ -654,11 +682,11 @@ async function generateClientLink(clientId) {
     const base = `${location.origin}${location.pathname}`;
     const url = `${base}#plan=${encrypted}`;
     modal(`
-      <div class="modal-title"><h2>Enlace para ${escapeHtml(client.name)}</h2><button class="btn ghost" data-close>✕</button></div>
+      <div class="modal-title"><h2>Enlace para ${escapeHtml(client.name)}</h2><button type="button" class="btn ghost" data-close>✕</button></div>
       <p class="muted">Enlace cifrado con PIN. Envía el enlace y el PIN por WhatsApp.</p>
       <div class="field"><label>PIN</label><div class="codebox">${escapeHtml(client.pin)}</div></div>
       <div class="field" style="margin-top:12px"><label>Enlace privado</label><div class="codebox" id="generated-url">${escapeHtml(url)}</div></div>
-      <div class="btn-row" style="margin-top:16px"><button class="btn primary" id="copy-generated">Copiar enlace</button><button class="btn" id="open-generated">Probar enlace</button></div>`);
+      <div class="btn-row" style="margin-top:16px"><button type="button" class="btn primary" id="copy-generated">Copiar enlace</button><button type="button" class="btn" id="open-generated">Probar enlace</button></div>`);
     document.getElementById('copy-generated').addEventListener('click', () => copyText(url, 'Enlace copiado'));
     document.getElementById('open-generated').addEventListener('click', () => window.open(url, '_blank'));
   } catch (error) {
@@ -728,7 +756,7 @@ function renderClientGate() {
       </div>
       <section class="day-card">
         <div class="field"><label>PIN de acceso</label><input class="input" id="client-pin" inputmode="numeric" placeholder="1234" autofocus></div>
-        <button class="btn primary block" id="unlock-plan" style="margin-top:12px">Entrar</button>
+        <button type="button" class="btn primary block" id="unlock-plan" style="margin-top:12px">Entrar</button>
         <p class="muted" style="font-size:13px">Solo se mostrará el entrenamiento de hoy y el de ayer.</p>
       </section>
     </div>`;
@@ -782,14 +810,14 @@ function dayCard(workout) {
     <div class="feedback">
       <label class="muted">Esfuerzo percibido</label>
       <div class="segmented">
-        ${['Fácil','Medio','Duro','Muy duro'].map(v => `<button class="${fb.rpe === v ? 'active' : ''}" data-workout="${workout.id}" data-rpe="${v}">${v}</button>`).join('')}
+        ${['Fácil','Medio','Duro','Muy duro'].map(v => `<button type="button" class="${fb.rpe === v ? 'active' : ''}" data-workout="${workout.id}" data-rpe="${v}">${v}</button>`).join('')}
       </div>
       <label class="muted">Molestias</label>
       <div class="segmented" style="grid-template-columns:repeat(2,1fr)">
-        ${['Sin dolor','Con dolor'].map(v => `<button class="${fb.pain === v ? 'active' : ''}" data-workout="${workout.id}" data-pain="${v}">${v}</button>`).join('')}
+        ${['Sin dolor','Con dolor'].map(v => `<button type="button" class="${fb.pain === v ? 'active' : ''}" data-workout="${workout.id}" data-pain="${v}">${v}</button>`).join('')}
       </div>
       <div class="field"><label>Nota para Jacobo</label><textarea class="textarea" data-note="${workout.id}" placeholder="Ej. Me molestó la rodilla / usé 60 kg / no pude acabar...">${escapeHtml(fb.note || '')}</textarea></div>
-      <div class="btn-row"><button class="btn primary" data-complete="${workout.id}">Marcar completado</button><button class="btn" data-copy-feedback="${workout.id}">Copiar feedback</button></div>
+      <div class="btn-row"><button type="button" class="btn primary" data-complete="${workout.id}">Marcar completado</button><button type="button" class="btn" data-copy-feedback="${workout.id}">Copiar feedback</button></div>
     </div>
   </section>`;
 }
@@ -870,11 +898,11 @@ function closeModal() {
 function showBackupModal() {
   const json = JSON.stringify(state, null, 2);
   modal(`
-    <div class="modal-title"><h2>Backup</h2><button class="btn ghost" data-close>✕</button></div>
+    <div class="modal-title"><h2>Backup</h2><button type="button" class="btn ghost" data-close>✕</button></div>
     <p class="muted">Exporta tus datos para no perder clientes, ejercicios, plantillas y entrenamientos.</p>
-    <div class="btn-row"><button class="btn primary" id="export-backup">Descargar backup</button><button class="btn" id="copy-backup">Copiar JSON</button></div>
+    <div class="btn-row"><button type="button" class="btn primary" id="export-backup">Descargar backup</button><button type="button" class="btn" id="copy-backup">Copiar JSON</button></div>
     <div class="field" style="margin-top:16px"><label>Importar backup</label><textarea class="textarea" id="import-json" placeholder="Pega aquí un backup JSON"></textarea></div>
-    <button class="btn" id="import-backup" style="margin-top:10px">Importar</button>`);
+    <button type="button" class="btn" id="import-backup" style="margin-top:10px">Importar</button>`);
   document.getElementById('export-backup').addEventListener('click', () => {
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
